@@ -20,7 +20,12 @@ class QuestionGUI(Frame):
             state.showQuestion()
         if char == 'a':
             state.showQuestion(toggle=True)
+        if char == 'j':
+            self.incrementFont()
+            state.showQuestion()
     def initUI(self):
+        self.index = 0
+        self.fonts = tkFont.families()
         self.parent.title("Jeopardy")        
         self.pack(fill=BOTH, expand=1)
         self.text = Text(self,bg="#%02x%02x%02x"%(0,0,58),fg="white")
@@ -38,6 +43,9 @@ class QuestionGUI(Frame):
         
         canvas.pack(fill=BOTH, expand=1)
         '''
+    def incrementFont(self):
+        self.font = tkFont.Font(family=self.fonts[self.index],size=50)
+        self.index +=1
     def drawQuestion(self,question,draw_question):
         self.text.delete(1.0, END)
         tag = "a" if draw_question else "b"
