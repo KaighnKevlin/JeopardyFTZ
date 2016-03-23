@@ -1,9 +1,12 @@
 from Tkinter import Tk, Canvas, Frame, BOTH, Text, INSERT, END, CENTER, WORD, Toplevel, W, Y,X,LEFT
 import tkFont
 import thread
+import utils
 
 state = None
 wrong = False
+
+
 class QuestionGUI(Frame):
     def __init__(self, parent): 
         Frame.__init__(self, parent)   
@@ -35,11 +38,10 @@ class QuestionGUI(Frame):
     def initUI(self):
         self.parent.title("Jeopardy")        
         self.pack(fill=BOTH, expand=1)
-        self.text = Text(self,bg="#%02x%02x%02x"%(0,0,58),fg="white")
-        self.font = tkFont.Font(family="Courier",weight="bold",size=50)
+        self.text = Text(self,bg=utils.bg_blue,fg=utils.mod_question_color)
         self.text.pack(fill=BOTH,expand=1)
-        self.text.tag_config("a",justify=CENTER,font=self.font,wrap=WORD)
-        self.text.tag_config("b",justify=CENTER,font=self.font,wrap=WORD,foreground="red")
+        self.text.tag_config("a",justify=CENTER,font=tkFont.Font(family="Courier",weight="bold",size=50),wrap=WORD)
+        self.text.tag_config("b",justify=CENTER,font=tkFont.Font(family="Courier",weight="bold",size=50),wrap=WORD,foreground="red")
 
     def drawQuestion(self,question,draw_question):
         self.text.delete(1.0, END)
@@ -64,7 +66,7 @@ class StatusGUI(object):
         self.score_ids = {}
     def initUI(self):
         self.frame.pack(fill=BOTH, expand=True)
-        self.canvas = Canvas(self.frame,bg="#%02x%02x%02x" % (0, 0, 58))
+        self.canvas = Canvas(self.frame,bg=utils.bg_blue)
         self.canvas.pack(fill=BOTH, expand=True)
     def getRect(self,x,y,dy=0):
         if (x,y) in self.coordsToRectMap.keys():
@@ -119,7 +121,7 @@ class RectangleCreator(object):
         rect = Rectangle(self.x,self.y,self.x+self.dimensions[0],self.y+self.dimensions[1])
         return rect
 class Rectangle(object):
-    def __init__(self,x1,y1,x2,y2,outline="#%02x%02x%02x" % (0, 0, 69),fill="#%02x%02x%02x" % (0, 0, 175)):
+    def __init__(self,x1,y1,x2,y2,outline=utils.rect_outline_blue,fill=utils.rect_blue):
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
