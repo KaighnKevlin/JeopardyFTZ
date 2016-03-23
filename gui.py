@@ -31,6 +31,7 @@ class QuestionGUI(Frame):
         if char in player_letters:
             i = player_letters.index(char)
             state.awardQuestion(i,wrong=wrong)
+            state.showQuestion()
             wrong = False
         if char == 'n':
             wrong = True
@@ -60,7 +61,7 @@ class StatusGUI(object):
     def __init__(self,parent):
         self.frame = Frame(parent)  
         self.parent = parent
-        self.rect_creator = RectangleCreator(100,50,400,50,1300,700,6,5,2,2)
+        self.rect_creator = RectangleCreator(25,75,400,50,1300,700,6,5,2,2)
         self.initUI()
         self.coordsToRectMap = {}
         self.score_ids = {}
@@ -92,8 +93,25 @@ class StatusGUI(object):
         right_rect = self.getRect(5,0)
         x = right_rect.x2+50
         y = right_rect.y1+i*50+20
-        score_id = self.canvas.create_text(x, y, anchor=W,fill="red" ,font="Purisa",text=player_name+": "+str(score))
+        score_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(score),font=tkFont.Font(family="Courier",weight="bold",size=20))
         self.score_ids[player_name] = score_id
+    def paintCategories(self,category_names):
+        for i,name in enumerate(category_names):
+            rect = self.getRect(i,0)
+            x = rect.x1+10
+            y = rect.y1-50
+            curr_word = ""
+            split =  name.split()
+            for i,word in enumerate(split):
+                if len(curr_word)+len(word) > 12 and curr_word!="":
+                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=14))
+                    curr_word=""
+                    y+=15
+                curr_word+= word+" "
+                if i==len(split)-1:
+                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=14))
+                    curr_word=""
+            
         '''
 class GUIQuestion(object):
     def __init__(self,rect,canvas):
@@ -131,7 +149,7 @@ class Rectangle(object):
     def paintRect(self,canvas):
         self.rect_id = canvas.create_rectangle(self.x1,self.y1,self.x2,self.y2, outline=self.outline, fill=self.fill)
     def paintText(self,canvas,str):
-        self.text_id = canvas.create_text(self.x1+10, self.y1+20, text=str, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=25))
+        self.text_id = canvas.create_text(self.x1+10, self.y1+20, fill=utils.value_color,text=str, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=25))
     def clear(self,canvas):
         canvas.delete(self.rect_id)
         canvas.delete(self.text_id)

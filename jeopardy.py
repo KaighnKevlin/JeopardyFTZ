@@ -59,12 +59,13 @@ class GameState(object):
                     continue
                 self.board_interface.paintRect(x,y)
                 self.board_interface.paintText(x,y,str(q.value))
+        self.board_interface.paintCategories(sorted(list(set([q.category for q in self.board.map if q.round == 1]))))
+        self.showQuestion()
         gui.startGUI(root)
     def changeQuestion(self,i):
         b = self.board
         curr_question = b.getQuestion(b.question_index)
         curr_question.markDone()
-        print curr_question,curr_question.x,curr_question.y
         self.board_interface.remove(curr_question.x,curr_question.y)
         b.question_index += i
         if b.question_index <= 0:
@@ -132,8 +133,6 @@ class Board(object):
             values = sorted(list(set([q.value for q in questions if not q.daily_double and q.round==round_num])))
             for q in [q for q in self.map if q.daily_double and q.round==round_num]:
                 q.value = values[q.y -(round_num-1)*5]
-        for q in self.map:
-            print q,q.x,q.y
     def getQuestion(self,index):
         return self.map[index]
     def getQuestionGrid(self,x,y):
