@@ -96,6 +96,8 @@ class GameState(object):
             self.show_question = True
         else:
             self.show_question = not self.show_question
+        dy = -5*(question.round-1)
+        self.board_interface.emphasizeQuestion(question.x,question.y,str(question.value),dy=dy)
         self.question_interface.drawQuestion(question,self.show_question)
         if question.daily_double and not toggle:
             player = self.last_correct_player

@@ -97,6 +97,9 @@ class StatusGUI(object):
         rect.paintText(self.canvas,str)
     def setPlayers(self,player_names):
         self.player_names = player_names
+    def emphasizeQuestion(self,x,y,str,dy):
+        rect = self.getRect(x,y,dy=dy)
+        rect.paintText(self.canvas,str,color="red")
     def paintScore(self,player_name,score):
         if player_name in self.score_ids:
             self.canvas.delete(self.score_ids[player_name])
@@ -199,10 +202,13 @@ class Rectangle(object):
         self.y2 = y2
         self.fill = fill
         self.outline = outline
+        self.text_id, self.rect_id = None,None
     def paintRect(self,canvas):
         self.rect_id = canvas.create_rectangle(self.x1,self.y1,self.x2,self.y2, outline=self.outline, fill=self.fill)
-    def paintText(self,canvas,str):
-        self.text_id = canvas.create_text(self.x1+10, self.y1+20, fill=utils.value_color,text=str, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=25))
+    def paintText(self,canvas,str,color=utils.value_color):
+        if self.text_id != None:
+            canvas.delete(self.text_id)
+        self.text_id = canvas.create_text(self.x1+10, self.y1+20, fill=color,text=str, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=25))
     def clear(self,canvas):
         canvas.delete(self.rect_id)
         canvas.delete(self.text_id)
