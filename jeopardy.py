@@ -97,7 +97,7 @@ class GameState(object):
         else:
             self.show_question = not self.show_question
         self.question_interface.drawQuestion(question,self.show_question)
-        if question.daily_double:
+        if question.daily_double and not toggle:
             player = self.last_correct_player
             if player == None:
                 self.board_interface.displayDailyDouble(question,"No one",0)

@@ -1,4 +1,4 @@
-from Tkinter import Tk, Canvas, Frame, BOTH, Text, INSERT, END, CENTER, WORD, Toplevel, W, Y,X,LEFT, HIDDEN, Entry, Button
+from Tkinter import Tk, Canvas, Frame, BOTH, Text, INSERT, END, CENTER, WORD, Toplevel, W, Y,X,LEFT, HIDDEN, Entry, Button, DISABLED
 import tkFont
 import thread
 import utils
@@ -124,12 +124,23 @@ class StatusGUI(object):
                     curr_word=""
     def displayDailyDouble(self,question,player_name,player_score):
         self.canvas.pack_forget()
+        dd_screen = [True]
         dd_canvas = Canvas(self.frame,bg=utils.bg_blue)
         dd_canvas.pack(fill=BOTH, expand=True)
         dd_canvas.create_text(50,50,fill="red",text="DAILY DOUBLE: "+player_name+" ($"+str(player_score)+")", anchor=W, font=self.daily_double_font)
         dd_canvas.create_text(50,200,fill="white",text=question.category, anchor=W, font=self.daily_double_category_font)
         e = Entry(dd_canvas)
         e.pack()
+        
+        def temp_controller(event):
+            if event.char == 's':
+                bool = dd_screen[0]
+                forget_canvas = dd_canvas if bool else self.canvas
+                paint_canvas = dd_canvas if not bool else self.canvas
+                forget_canvas.pack_forget()
+                paint_canvas.pack(fill=BOTH, expand=True)
+                dd_screen[0] = not bool
+        self.parent.bind_all("<Key>", temp_controller)
         def daily_double_key_controller(event):
             char = event.char
             if char == 'n':
@@ -138,13 +149,20 @@ class StatusGUI(object):
                 state.awardQuestion(self.player_names.index(player_name),wrong=False)
             if char == 'n' or char == 'y':
                 self.parent.bind_all("<Key>", key_controller)
+                dd_canvas.destroy()
                 self.canvas.pack(fill=BOTH, expand=True)
-                dd_canvas.pack_forget()
+                state.switchWindows()
+                state.showQuestion()
+            if char == 'a':
+                state.showQuestion(toggle=True)
+
 
         def placeBet():
             bet = int(e.get())
             question.value = bet
             self.parent.bind_all("<Key>", daily_double_key_controller)
+            e['state'] = DISABLED
+            state.switchWindows()
         b = Button(dd_canvas, text="get", width=10, command=placeBet)
         b.pack()
         '''
