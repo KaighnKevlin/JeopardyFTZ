@@ -1,4 +1,4 @@
-from Tkinter import Tk, Canvas, Frame, BOTH, Text, INSERT, END, CENTER, WORD, Toplevel, W, Y,X,LEFT
+from Tkinter import Tk, Canvas, Frame, BOTH, Text, INSERT, END, CENTER, WORD, Toplevel, W, Y,X,LEFT, HIDDEN, Entry, Button
 import tkFont
 import thread
 import utils
@@ -6,40 +6,39 @@ import utils
 state = None
 wrong = False
 
-
-class QuestionGUI(Frame):
+def key_controller(event):
+    char = event.char
+    global wrong
+    if char == 'f':
+        state.changeQuestion(1)
+        state.showQuestion()
+    if char == 'b':
+        state.changeQuestion(-1)
+        state.showQuestion()
+    if char == 'a':
+        state.showQuestion(toggle=True)
+    player_letters = ['j','k','l',';','h']
+    if char in player_letters:
+        i = player_letters.index(char)
+        state.awardQuestion(i,wrong=wrong)
+        state.showQuestion()
+        wrong = False
+    if char == 'n':
+        wrong = True
+    if char == 's':
+        state.switchWindows()
+class QuestionGUI(object):
     def __init__(self, parent): 
-        Frame.__init__(self, parent)   
-        
+        self.frame = Frame(parent) 
+        self.frame.pack(fill=BOTH,expand=1)
         self.parent = parent 
-        self.parent.bind_all("<Key>", self.key_controller)
+        self.parent.bind_all("<Key>", key_controller)
         self.initUI()
         self.makeStatusWindow()
 
-    def key_controller(self,event):
-        char = event.char
-        global wrong
-        if char == 'f':
-            state.changeQuestion(1)
-            state.showQuestion()
-        if char == 'b':
-            state.changeQuestion(-1)
-            state.showQuestion()
-        if char == 'a':
-            state.showQuestion(toggle=True)
-        player_letters = ['j','k','l',';','h']
-        if char in player_letters:
-            i = player_letters.index(char)
-            state.awardQuestion(i,wrong=wrong)
-            state.showQuestion()
-            wrong = False
-        if char == 'n':
-            wrong = True
-            
     def initUI(self):
         self.parent.title("Jeopardy")        
-        self.pack(fill=BOTH, expand=1)
-        self.text = Text(self,bg=utils.bg_blue,fg=utils.mod_question_color)
+        self.text = Text(self.frame,bg=utils.bg_blue,fg=utils.mod_question_color)
         self.text.pack(fill=BOTH,expand=1)
         self.text.tag_config("a",justify=CENTER,font=tkFont.Font(family="Courier",weight="bold",size=50),wrap=WORD)
         self.text.tag_config("b",justify=CENTER,font=tkFont.Font(family="Courier",weight="bold",size=50),wrap=WORD,foreground="red")
@@ -57,6 +56,12 @@ class QuestionGUI(Frame):
         self.status_window = Toplevel(self.parent)
         self.status_window.geometry("1300x700+0+0")
         self.status_board = StatusGUI(self.status_window)
+    def switchWindows(self):
+        x_q,y_q = self.parent.winfo_x(),self.parent.winfo_y()
+        x_s,y_s = self.status_window.winfo_x(),self.status_window.winfo_y()
+        self.parent.geometry("1300x700+{}+{}".format(x_s,y_s))
+        self.status_window.geometry("1300x700+{}+{}".format(x_q,y_q))
+
 class StatusGUI(object):
     def __init__(self,parent):
         self.frame = Frame(parent)  
@@ -65,6 +70,12 @@ class StatusGUI(object):
         self.initUI()
         self.coordsToRectMap = {}
         self.score_ids = {}
+        
+        #fonts
+        self.score_font = tkFont.Font(family="Courier",weight="bold",size=20)
+        self.category_font = tkFont.Font(family="Courier",weight="bold",size=14)
+        self.daily_double_font = tkFont.Font(family="Courier",weight="bold",size=50)
+        self.daily_double_category_font = tkFont.Font(family="Courier",weight="bold",size=50)
     def initUI(self):
         self.frame.pack(fill=BOTH, expand=True)
         self.canvas = Canvas(self.frame,bg=utils.bg_blue)
@@ -93,7 +104,7 @@ class StatusGUI(object):
         right_rect = self.getRect(5,0)
         x = right_rect.x2+50
         y = right_rect.y1+i*50+20
-        score_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(score),font=tkFont.Font(family="Courier",weight="bold",size=20))
+        score_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(score),font=self.score_font)
         self.score_ids[player_name] = score_id
     def paintCategories(self,category_names):
         for i,name in enumerate(category_names):
@@ -101,17 +112,41 @@ class StatusGUI(object):
             x = rect.x1+10
             y = rect.y1-50
             curr_word = ""
-            split =  name.split()
+            split = name.split()
             for i,word in enumerate(split):
                 if len(curr_word)+len(word) > 12 and curr_word!="":
-                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=14))
+                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font)
                     curr_word=""
                     y+=15
                 curr_word+= word+" "
                 if i==len(split)-1:
-                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=14))
+                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font)
                     curr_word=""
-            
+    def displayDailyDouble(self,question,player_name,player_score):
+        self.canvas.pack_forget()
+        dd_canvas = Canvas(self.frame,bg=utils.bg_blue)
+        dd_canvas.pack(fill=BOTH, expand=True)
+        dd_canvas.create_text(50,50,fill="red",text="DAILY DOUBLE: "+player_name+" ($"+str(player_score)+")", anchor=W, font=self.daily_double_font)
+        dd_canvas.create_text(50,200,fill="white",text=question.category, anchor=W, font=self.daily_double_category_font)
+        e = Entry(dd_canvas)
+        e.pack()
+        def daily_double_key_controller(event):
+            char = event.char
+            if char == 'n':
+                state.awardQuestion(self.player_names.index(player_name),wrong=True)
+            if char == 'y':
+                state.awardQuestion(self.player_names.index(player_name),wrong=False)
+            if char == 'n' or char == 'y':
+                self.parent.bind_all("<Key>", key_controller)
+                self.canvas.pack(fill=BOTH, expand=True)
+                dd_canvas.pack_forget()
+
+        def placeBet():
+            bet = int(e.get())
+            question.value = bet
+            self.parent.bind_all("<Key>", daily_double_key_controller)
+        b = Button(dd_canvas, text="get", width=10, command=placeBet)
+        b.pack()
         '''
 class GUIQuestion(object):
     def __init__(self,rect,canvas):

@@ -47,6 +47,7 @@ class GameState(object):
         self.board_interface = self.question_interface.status_board
         self.round = 1
         self.players = []
+        self.last_correct_player = None
         for i,player_name in enumerate(getPlayerNames()):
             self.players.append(Player(player_name,i))
         self.board_interface.setPlayers([p.name for p in self.players])
@@ -62,6 +63,8 @@ class GameState(object):
         self.board_interface.paintCategories(sorted(list(set([q.category for q in self.board.map if q.round == 1]))))
         self.showQuestion()
         gui.startGUI(root)
+    def switchWindows(self):
+        self.question_interface.switchWindows()
     def changeQuestion(self,i):
         b = self.board
         curr_question = b.getQuestion(b.question_index)
@@ -95,11 +98,18 @@ class GameState(object):
             self.show_question = not self.show_question
         self.question_interface.drawQuestion(question,self.show_question)
         if question.daily_double:
+            player = self.last_correct_player
+            if player == None:
+                self.board_interface.displayDailyDouble(question,"No one",0)
+            else:
+                self.board_interface.displayDailyDouble(question,player.name,player.score)
             thread.start_new_thread(playDailyDoubleSound, ())
     def awardQuestion(self,player_id,wrong=False):
         question_value = self.board.getCurrentQuestion().value
         player = self.players[player_id]
         player.score += question_value * (-1 if wrong else 1)
+        if not wrong:
+            self.last_correct_player = player
         self.board_interface.paintScore(player.name,player.score)
         self.changeQuestion(1)
 class Board(object):
