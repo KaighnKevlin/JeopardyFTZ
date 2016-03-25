@@ -29,6 +29,8 @@ def key_controller(event):
         state.switchWindows()
     if char == 't':
         state.board_interface.parent.bind_all("<Key>", timer_controller)
+    if char == 'S':
+        state.sayQuestion()
 timer_digits = []
 timer_on = False
 def timer_controller(event):
@@ -217,7 +219,11 @@ class StatusGUI(object):
 
 
         def placeBet():
-            bet = int(e.get())
+            try:
+                bet = int(e.get())
+            except ValueError:
+                e.insert(0,"not a number")
+                return
             if bet < 0 or (bet > 2000 and bet > player_score):
                 e.insert(0,"invalid bet")
                 return

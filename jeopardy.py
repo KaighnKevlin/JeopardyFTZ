@@ -3,6 +3,7 @@ import gui
 import operator
 import winsound
 import thread
+import pyttsx
 class Player(object):
     def __init__(self,name,id):
         self.name = name
@@ -47,6 +48,8 @@ class GameState(object):
         self.board_interface = self.question_interface.status_board
         self.round = 1
         self.players = []
+        self.engine = pyttsx.init()
+        self.engine.setProperty("rate",140)
         self.last_correct_player = None
         for i,player_name in enumerate(getPlayerNames()):
             self.players.append(Player(player_name,i))
@@ -102,6 +105,9 @@ class GameState(object):
             else:
                 self.board_interface.displayDailyDouble(question,player.name,player.score)
             thread.start_new_thread(playDailyDoubleSound, ())
+    def sayQuestion(self):
+        self.engine.say(self.board.getCurrentQuestion().clue)
+        thread.start_new_thread(self.engine.runAndWait, ())
     def awardQuestion(self,player_id,wrong=False):
         question_value = self.board.getCurrentQuestion().value
         player = self.players[player_id]
