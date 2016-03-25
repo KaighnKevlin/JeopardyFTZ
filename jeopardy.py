@@ -53,14 +53,7 @@ class GameState(object):
         self.board_interface.setPlayers([p.name for p in self.players])
         for player in self.players:
             self.board_interface.paintScore(player.name,player.score)
-        for x in range(6):
-            for y in range(5):
-                q = self.board.getQuestionGrid(x,y)
-                if q == None:
-                    continue
-                self.board_interface.paintRect(x,y)
-                self.board_interface.paintText(x,y,str(q.value))
-        self.board_interface.paintCategories(sorted(list(set([q.category for q in self.board.map if q.round == 1]))))
+        self.paintRound(1)
         self.showQuestion()
         gui.startGUI(root)
     def switchWindows(self):
@@ -76,20 +69,23 @@ class GameState(object):
         if b.question_index >= len(b.map):
             b.question_index = len(b.map)-1
         if curr_question.round != b.getCurrentQuestion().round:
-            self.changeRound(1)
-    def changeRound(self,i):
-        self.round += i
+            self.paintRound(b.getCurrentQuestion().round)
+    def paintRound(self,round):
+        self.round = round
         if self.round == 3:
             self.board_interface.paintText(3,3,self.board.getCurrentQuestion().category)
             return
-        for x in range(6):
-            for y in range(5,10):
-                q = self.board.getQuestionGrid(x,y)
-                if q == None:
-                    continue
-                dy = -5*(q.round-1)
-                self.board_interface.paintRect(x,y,dy=dy)
-                self.board_interface.paintText(x,y,str(q.value),dy=dy)
+        if self.round < 3:
+            self.board_interface.paintCategories(sorted(list(set([q.category for q in self.board.map if q.round == self.round]))))
+            starty = (self.round-1)*5
+            for x in range(6):
+                for y in range(starty,starty+5):
+                    q = self.board.getQuestionGrid(x,y)
+                    if q == None:
+                        continue
+                    dy = -5*(q.round-1)
+                    self.board_interface.paintRect(x,y,dy=dy)
+                    self.board_interface.paintText(x,y,str(q.value),dy=dy)
     def showQuestion(self,toggle=False):
         question = self.board.getCurrentQuestion()
         if not toggle:

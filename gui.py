@@ -2,7 +2,7 @@ from Tkinter import Tk, Canvas, Frame, BOTH, Text, INSERT, END, CENTER, WORD, To
 import tkFont
 import thread
 import utils
-
+import time
 state = None
 wrong = False
 
@@ -70,9 +70,9 @@ class StatusGUI(object):
         self.initUI()
         self.coordsToRectMap = {}
         self.score_ids = {}
-        
+        self.category_ids = []
+        self.scores = {}
         #fonts
-        self.score_font = tkFont.Font(family="Courier",weight="bold",size=20)
         self.category_font = tkFont.Font(family="Courier",weight="bold",size=14)
         self.daily_double_font = tkFont.Font(family="Courier",weight="bold",size=50)
         self.daily_double_category_font = tkFont.Font(family="Courier",weight="bold",size=50)
@@ -97,19 +97,19 @@ class StatusGUI(object):
         rect.paintText(self.canvas,str)
     def setPlayers(self,player_names):
         self.player_names = player_names
+        right_rect = self.getRect(5,0)
+        x = right_rect.x2
+        y = right_rect.y1
+        self.score_container = ScoreContainer([name for name in player_names],x,y,self.canvas)
     def emphasizeQuestion(self,x,y,str,dy):
         rect = self.getRect(x,y,dy=dy)
         rect.paintText(self.canvas,str,color="red")
     def paintScore(self,player_name,score):
-        if player_name in self.score_ids:
-            self.canvas.delete(self.score_ids[player_name])
-        i = self.player_names.index(player_name)
-        right_rect = self.getRect(5,0)
-        x = right_rect.x2+50
-        y = right_rect.y1+i*50+20
-        score_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(score),font=self.score_font)
-        self.score_ids[player_name] = score_id
+        self.score_container.paintScore(player_name,score)
+    
     def paintCategories(self,category_names):
+        [self.canvas.delete(id) for id in self.category_ids]
+        self.category_ids = []
         for i,name in enumerate(category_names):
             rect = self.getRect(i,0)
             x = rect.x1+10
@@ -118,12 +118,12 @@ class StatusGUI(object):
             split = name.split()
             for i,word in enumerate(split):
                 if len(curr_word)+len(word) > 12 and curr_word!="":
-                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font)
+                    self.category_ids.append(self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
                     curr_word=""
                     y+=15
                 curr_word+= word+" "
                 if i==len(split)-1:
-                    self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font)
+                    self.category_ids.append(self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
                     curr_word=""
     def displayDailyDouble(self,question,player_name,player_score):
         self.canvas.pack_forget()
@@ -132,6 +132,12 @@ class StatusGUI(object):
         dd_canvas.pack(fill=BOTH, expand=True)
         dd_canvas.create_text(50,50,fill="red",text="DAILY DOUBLE: "+player_name+" ($"+str(player_score)+")", anchor=W, font=self.daily_double_font)
         dd_canvas.create_text(50,200,fill="white",text=question.category, anchor=W, font=self.daily_double_category_font)
+        def revert():
+            dd_canvas.destroy()
+            self.canvas.pack(fill=BOTH, expand=True)
+        if player_name not in self.player_names:
+            self.canvas.after(5000,revert)
+            return        
         e = Entry(dd_canvas)
         e.pack()
         
@@ -162,12 +168,105 @@ class StatusGUI(object):
 
         def placeBet():
             bet = int(e.get())
+            if bet < 0 or (bet > 2000 and bet > player_score):
+                e.insert(0,"invalid bet")
+                return
             question.value = bet
             self.parent.bind_all("<Key>", daily_double_key_controller)
             e['state'] = DISABLED
             state.switchWindows()
-        b = Button(dd_canvas, text="get", width=10, command=placeBet)
+        b = Button(dd_canvas, text="Place Bet", width=10, command=placeBet)
         b.pack()
+class ScoreContainer(object):
+    def __init__(self,player_names,initial_x,initial_y,canvas):
+        self.canvas = canvas
+        self.initial_x,self.initial_y = initial_x,initial_y
+        self.player_names = player_names
+        self.player_scores = {p:0 for p in self.player_names}
+        self.canvas_ids = {}
+        self.score_font = tkFont.Font(family="Courier",weight="bold",size=20)
+    def getCoordinates(self,player_name):
+        x = self.initial_x + 50
+        y = self.initial_y+self.player_names.index(player_name)*50+20
+        return x,y
+    def paintScore(self,player_name,player_score,absolute_position=None):
+        self.unpaintScore(player_name)
+        if absolute_position == None:
+            x,y = self.getCoordinates(player_name)
+        else:
+            x,y = absolute_position
+        print 'putting ',player_name,' at position (',x,',',y,')'
+        canvas_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(player_score),font=self.score_font)
+        self.canvas_ids[player_name] = canvas_id
+        self.player_scores[player_name] = player_score
+        if absolute_position == None:
+            self.animate(player_name)
+    def unpaintScore(self,player_name):
+        if player_name in self.canvas_ids.keys():
+            self.canvas.delete(self.canvas_ids[player_name])
+            del self.canvas_ids[player_name]
+    def animate(self,player_name):
+        def switch(p1,p2):
+                
+            x1,y1 = self.getCoordinates(p1)
+            x2,y2 = self.getCoordinates(p2)
+            print 'trying to switch ',p1,' and ',p2
+            print p1," at (",x1,",",y1,")"
+            print p2," at (",x2,",",y2,")"
+            '''
+            self.paintScore(p1,self.player_scores[p1],absolute_position=(x2,y2))
+            self.paintScore(p2,self.player_scores[p2],absolute_position=(x1,y1))
+            
+            '''
+            p1_animation = LineAnimation(40,x1,y1,x2,y2)
+            p2_animation = LineAnimation(40,x2,y2,x1,y1)
+            def run_frame():
+                x,y = p1_animation.getCoordinates()
+                self.paintScore(p1,self.player_scores[p1],absolute_position=(x,y))
+                x,y = p2_animation.getCoordinates()
+                self.paintScore(p2,self.player_scores[p2],absolute_position=(x,y))
+                print p2_animation.done and p1_animation.done
+                if p2_animation.done and p1_animation.done:
+                    p1_index = self.player_names.index(p1)
+                    p2_index = self.player_names.index(p2)
+                    self.player_names[p1_index] = p2
+                    self.player_names[p2_index] = p1
+                    self.animate(player_name)
+                    return
+                self.canvas.after(17,run_frame)
+            run_frame()            
+        print 'attempting to animate '+player_name
+        ranking = self.player_names.index(player_name)
+        score = self.player_scores[player_name]
+        if ranking > 0:
+            higher_player = self.player_names[ranking-1]
+            if self.player_scores[higher_player] < score:
+                switch(player_name,higher_player)
+        if ranking < len(self.player_names)-1:
+            lower_player = self.player_names[ranking+1]
+            if self.player_scores[lower_player] > score:
+                switch(player_name,lower_player)
+        
+class LineAnimation(object):
+    def __init__(self,timesteps,initial_x,initial_y,dest_x,dest_y):
+        self.t = 0
+        self.timesteps = timesteps
+        self.x = initial_x
+        self.y = initial_y
+        self.dx = (dest_x-initial_x)/float(timesteps)
+        self.dy = (dest_y-initial_y)/float(timesteps)
+        self.done = False
+    def move(self):
+        if self.t >= self.timesteps:
+            self.done = True
+            return
+        else:
+            self.t+=1
+        self.x += self.dx
+        self.y += self.dy
+    def getCoordinates(self):
+        self.move()
+        return self.x,self.y
         '''
 class GUIQuestion(object):
     def __init__(self,rect,canvas):
