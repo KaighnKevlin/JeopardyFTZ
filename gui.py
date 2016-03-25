@@ -27,6 +27,31 @@ def key_controller(event):
         wrong = True
     if char == 's':
         state.switchWindows()
+    if char == 't':
+        state.board_interface.parent.bind_all("<Key>", timer_controller)
+timer_digits = []
+timer_on = False
+def timer_controller(event):
+    def digits_to_number(lst):
+        lst.reverse()
+        ret = sum([(10**i)*digit for i,digit in enumerate(timer_digits)])
+        lst.reverse()
+        return ret
+    global timer_digits, timer_on
+    char = event.char
+    if char >= '0' and char <= '9':
+        digit = int(char)
+        timer_digits.append(digit)
+    if char == 't':
+        if timer_on:
+            timer_digits = []
+            return
+        time = digits_to_number(timer_digits)
+        timer_digits = []
+        state.board_interface.startTimer(time)
+        timer_on = True
+    if char == 'c':
+        state.board_interface.cancel_timer = True
 class QuestionGUI(object):
     def __init__(self, parent): 
         self.frame = Frame(parent) 
@@ -72,10 +97,12 @@ class StatusGUI(object):
         self.score_ids = {}
         self.category_ids = []
         self.scores = {}
+        self.cancel_timer = False
         #fonts
         self.category_font = tkFont.Font(family="Courier",weight="bold",size=14)
         self.daily_double_font = tkFont.Font(family="Courier",weight="bold",size=50)
         self.daily_double_category_font = tkFont.Font(family="Courier",weight="bold",size=50)
+        self.timer_font = tkFont.Font(family="Courier",weight="bold",size=40)
     def initUI(self):
         self.frame.pack(fill=BOTH, expand=True)
         self.canvas = Canvas(self.frame,bg=utils.bg_blue)
@@ -125,6 +152,29 @@ class StatusGUI(object):
                 if i==len(split)-1:
                     self.category_ids.append(self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
                     curr_word=""
+    def startTimer(self,time):
+        self.timer_id = self.canvas.create_text(1100,500,fill="green",text=str(time), anchor=W, font=self.timer_font)
+        self.time = time
+        def exit():
+            self.canvas.delete(self.timer_id)
+            self.parent.bind_all("<Key>", key_controller)
+            global timer_on
+            timer_on = False
+
+        def timerRound():
+            if self.cancel_timer:
+                self.cancel_timer = False
+                exit()
+                return
+            self.canvas.delete(self.timer_id)
+            self.time -= 1
+            self.timer_id = self.canvas.create_text(1100,500,fill="green",text=str(self.time), anchor=W, font=self.timer_font)
+            if self.time <= 0:
+                self.canvas.after(1000,exit)
+            else:
+                self.canvas.after(1000,timerRound)
+        self.canvas.after(1000,timerRound)
+
     def displayDailyDouble(self,question,player_name,player_score):
         self.canvas.pack_forget()
         dd_screen = [True]
