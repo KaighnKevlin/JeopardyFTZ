@@ -185,6 +185,7 @@ class ScoreContainer(object):
         self.player_scores = {p:0 for p in self.player_names}
         self.canvas_ids = {}
         self.score_font = tkFont.Font(family="Courier",weight="bold",size=20)
+        self.animations = {}
     def getCoordinates(self,player_name):
         x = self.initial_x + 50
         y = self.initial_y+self.player_names.index(player_name)*50+20
@@ -195,7 +196,6 @@ class ScoreContainer(object):
             x,y = self.getCoordinates(player_name)
         else:
             x,y = absolute_position
-        print 'putting ',player_name,' at position (',x,',',y,')'
         canvas_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(player_score),font=self.score_font)
         self.canvas_ids[player_name] = canvas_id
         self.player_scores[player_name] = player_score
@@ -210,22 +210,29 @@ class ScoreContainer(object):
                 
             x1,y1 = self.getCoordinates(p1)
             x2,y2 = self.getCoordinates(p2)
-            print 'trying to switch ',p1,' and ',p2
-            print p1," at (",x1,",",y1,")"
-            print p2," at (",x2,",",y2,")"
             '''
             self.paintScore(p1,self.player_scores[p1],absolute_position=(x2,y2))
             self.paintScore(p2,self.player_scores[p2],absolute_position=(x1,y1))
             
             '''
-            p1_animation = LineAnimation(40,x1,y1,x2,y2)
-            p2_animation = LineAnimation(40,x2,y2,x1,y1)
+            for animation in self.animations.keys():
+                if animation.player_name == p1 or animation.player_name == p2:
+                    self.animations[animation] = False
+            p1_animation = LineAnimation(40,x1,y1,x2,y2,p1)
+            p2_animation = LineAnimation(40,x2,y2,x1,y1,p2)
+            self.animations[p1_animation] = True
+            self.animations[p2_animation] = True
             def run_frame():
+                if not self.animations[p1_animation] or not self.animations[p2_animation]:
+                    p1_animation.done = True
+                    del self.animations[p1_animation]
+                    p2_animation.done = True
+                    del self.animations[p2_animation]
+                    return
                 x,y = p1_animation.getCoordinates()
                 self.paintScore(p1,self.player_scores[p1],absolute_position=(x,y))
                 x,y = p2_animation.getCoordinates()
                 self.paintScore(p2,self.player_scores[p2],absolute_position=(x,y))
-                print p2_animation.done and p1_animation.done
                 if p2_animation.done and p1_animation.done:
                     p1_index = self.player_names.index(p1)
                     p2_index = self.player_names.index(p2)
@@ -235,7 +242,6 @@ class ScoreContainer(object):
                     return
                 self.canvas.after(17,run_frame)
             run_frame()            
-        print 'attempting to animate '+player_name
         ranking = self.player_names.index(player_name)
         score = self.player_scores[player_name]
         if ranking > 0:
@@ -246,9 +252,9 @@ class ScoreContainer(object):
             lower_player = self.player_names[ranking+1]
             if self.player_scores[lower_player] > score:
                 switch(player_name,lower_player)
-        
 class LineAnimation(object):
-    def __init__(self,timesteps,initial_x,initial_y,dest_x,dest_y):
+    def __init__(self,timesteps,initial_x,initial_y,dest_x,dest_y,player_name):
+        self.player_name = player_name
         self.t = 0
         self.timesteps = timesteps
         self.x = initial_x
