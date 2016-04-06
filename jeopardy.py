@@ -28,7 +28,6 @@ class Question(object):
             return self.round < other.round
         if self.cat_id != other.cat_id:
             return self.category < other.category
-        #    return self.cat_id < other.cat_id
         return self.clue_id < other.clue_id
     def __gt__ (self, other):
         return other.__lt__(self)
@@ -65,7 +64,9 @@ class GameState(object):
         b = self.board
         curr_question = b.getQuestion(b.question_index)
         curr_question.markDone()
-        self.board_interface.remove(curr_question.x,curr_question.y)
+        
+        if curr_question.round != 3:
+            self.board_interface.remove(curr_question.x,curr_question.y)
         b.question_index += i
         if b.question_index <= 0:
             b.question_index = 0 
@@ -77,6 +78,7 @@ class GameState(object):
         self.round = round
         if self.round == 3:
             self.board_interface.paintText(3,3,self.board.getCurrentQuestion().category)
+            self.question_interface.displayFinalJeopardy({p.name:p.score for p in self.players})
             return
         if self.round < 3:
             self.board_interface.paintCategories(sorted(list(set([q.category for q in self.board.map if q.round == self.round]))))
@@ -91,12 +93,15 @@ class GameState(object):
                     self.board_interface.paintText(x,y,str(q.value),dy=dy)
     def showQuestion(self,toggle=False):
         question = self.board.getCurrentQuestion()
+        if question.round == 3:
+            return
         if not toggle:
             self.show_question = True
         else:
             self.show_question = not self.show_question
         dy = -5*(question.round-1)
-        self.board_interface.emphasizeQuestion(question.x,question.y,str(question.value),dy=dy)
+        if question.round != 3:
+            self.board_interface.emphasizeQuestion(question.x,question.y,str(question.value),dy=dy)
         self.question_interface.drawQuestion(question,self.show_question)
         if question.daily_double and not toggle:
             player = self.last_correct_player
@@ -116,6 +121,9 @@ class GameState(object):
             self.last_correct_player = player
         self.board_interface.paintScore(player.name,player.score)
         self.changeQuestion(1)
+    def awardPoints(self,player_name,points):
+        player = [p for p in self.players if p.name == player_name][0]
+        player.score += points
 class Board(object):
     def __init__(self,questions):
         self.question_index = 0
@@ -159,7 +167,7 @@ class Board(object):
 def getPlayerNames():
     return sorted(["Kaighn","Jonah","Shaunak","Will","Tyler"])
 def getGameNumber():
-    return 4676
+    return 4675#4676
 def parseQuestions(db_questions):
     questions = [Question(round,category,value,clue,answer,clue_id,cat_id) for round,category,value,clue,answer,clue_id,cat_id in db_questions]
     for q in questions:

@@ -5,7 +5,8 @@ import utils
 import time
 state = None
 wrong = False
-
+def null_controller(event):
+    pass
 def key_controller(event):
     char = event.char
     global wrong
@@ -88,6 +89,76 @@ class QuestionGUI(object):
         x_s,y_s = self.status_window.winfo_x(),self.status_window.winfo_y()
         self.parent.geometry("1300x700+{}+{}".format(x_s,y_s))
         self.status_window.geometry("1300x700+{}+{}".format(x_q,y_q))
+    def displayFinalJeopardy(self,player_to_scores_dict):
+        player_bets = {}
+        player_answers = {}
+        self.parent.bind_all("<Key>", null_controller)
+        player_names = [t[0] for t in sorted(player_to_scores_dict.items(), key= lambda x : x[1])]
+        current_player_index = [0]
+        def final_controller(event):
+            char = event.char
+            if char == 'y':
+                right = True
+            if char == 'n':
+                right = False
+            if char == 'y' or char == 'n':
+                multiplier = 1 if right else -1
+                name = player_names[current_player_index[0]]
+                state.awardPoints(name,multiplier*player_bets[name])
+                displayFinalJeopardyResult()
+        def displayResults(player_name,player_score,player_bet,player_answer):
+            self.text.insert(INSERT,"{}'s Answer: {}\nBet: {}".format(player_name,player_answer,player_bet),"b")
+        def displayFinalJeopardyResult():
+            self.text.delete(1.0, END)
+            for child in self.text.winfo_children():
+                child.destroy()
+            current_player_index[0] += 1
+            if current_player_index[0] >= len(player_names):
+                return
+            current_player = player_names[current_player_index[0]]
+            displayResults(current_player,player_to_scores_dict[current_player],player_bets[current_player],player_answers[current_player])
+            self.parent.bind_all("<Key>", final_controller)
+
+        def displayFinalJeopardyBet(player_name,player_score,answer=False):
+            self.text.delete(1.0, END)
+            for child in self.text.winfo_children():
+                child.destroy()
+            mode = "Bet" if not answer else "Answer"
+            self.text.insert(INSERT,"Final Jeopardy\n{}'s {} (${}):".format(player_name,mode,str(player_score)),"b")
+            e = Entry(self.text)
+            e.pack()
+            def placeBet():
+                if not answer:
+                    try:
+                        bet = int(e.get())
+                    except ValueError:
+                        e.insert(0,"not a number")
+                        return
+                    if bet < 0 or bet > player_score:
+                        e.insert(0,"invalid bet")
+                        return
+                    player_bets[player_name] = bet
+                else:
+                    input = e.get()
+                    player_answers[player_name] = input
+                
+                current_player_index[0] += 1
+                if current_player_index[0] >= len(player_names):
+                    if not answer:
+                        current_player_index[0] = 0
+                        next_player = player_names[0]
+                        displayFinalJeopardyBet(next_player,player_to_scores_dict[next_player],answer=True)
+                    else:
+                        current_player_index[0] = 0
+                        displayFinalJeopardyResult()
+                else:
+                    next_player = player_names[current_player_index[0]]
+                    displayFinalJeopardyBet(next_player,player_to_scores_dict[next_player],answer=answer)
+            b = Button(self.text, text="Place Bet", width=10, command=placeBet)
+            b.pack()
+            
+            
+        displayFinalJeopardyBet(player_names[current_player_index[0]],player_to_scores_dict[player_names[current_player_index[0]]])
 
 class StatusGUI(object):
     def __init__(self,parent):
@@ -176,7 +247,8 @@ class StatusGUI(object):
             else:
                 self.canvas.after(1000,timerRound)
         self.canvas.after(1000,timerRound)
-
+    def displayFinalJeopardy(self):
+        pass
     def displayDailyDouble(self,question,player_name,player_score):
         self.canvas.pack_forget()
         dd_screen = [True]
@@ -329,16 +401,6 @@ class LineAnimation(object):
     def getCoordinates(self):
         self.move()
         return self.x,self.y
-        '''
-class GUIQuestion(object):
-    def __init__(self,rect,canvas):
-        self.rect = rect
-        self.canvas = canvas
-    def remove(self):
-        self.canvas.delete(self.rect_id)
-        self.canvas.delete(self.text_id)
-    def paint(self,canvas):
-        self.rect_id,self.text_id = self.rect.paint(canvas)'''
 class RectangleCreator(object):
     def __init__(self,initial_x,initial_y,padmax_x,padmax_y,screen_width,screen_height,num_rects_x,num_rects_y,pad_x,pad_y):
         self.initial_x = initial_x
