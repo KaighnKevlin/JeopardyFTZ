@@ -178,7 +178,7 @@ class StatusGUI(object):
         self.timer_font = tkFont.Font(family="Courier",weight="bold",size=40)
     def initUI(self):
         self.frame.pack(fill=BOTH, expand=True)
-        self.canvas = Canvas(self.frame,bg=utils.bg_blue)
+        self.canvas = utils.SuperCanvas(self.frame,bg=utils.bg_blue)
         self.canvas.pack(fill=BOTH, expand=True)
     def getRect(self,x,y,dy=0):
         if (x,y) in self.coordsToRectMap.keys():
@@ -218,15 +218,15 @@ class StatusGUI(object):
             split = name.split()
             for i,word in enumerate(split):
                 if len(curr_word)+len(word) > 12 and curr_word!="":
-                    self.category_ids.append(self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
+                    self.category_ids.append(self.canvas.t1(self.canvas.create_text,x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
                     curr_word=""
                     y+=15
                 curr_word+= word+" "
                 if i==len(split)-1:
-                    self.category_ids.append(self.canvas.create_text(x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
+                    self.category_ids.append(self.canvas.t1(self.canvas.create_text,x,y,fill="white",text=curr_word, anchor=W, font=self.category_font))
                     curr_word=""
     def startTimer(self,time):
-        self.timer_id = self.canvas.create_text(1100,500,fill="green",text=str(time), anchor=W, font=self.timer_font)
+        self.timer_id = self.canvas.t1(self.canvas.create_text,1100,500,fill="green",text=str(time), anchor=W, font=self.timer_font)
         self.time = time
         def exit():
             self.canvas.delete(self.timer_id)
@@ -241,7 +241,7 @@ class StatusGUI(object):
                 return
             self.canvas.delete(self.timer_id)
             self.time -= 1
-            self.timer_id = self.canvas.create_text(1100,500,fill="green",text=str(self.time), anchor=W, font=self.timer_font)
+            self.timer_id = self.canvas.t1(self.canvas.create_text,1100,500,fill="green",text=str(self.time), anchor=W, font=self.timer_font)
             if self.time <= 0:
                 self.canvas.after(1000,exit)
             else:
@@ -252,7 +252,7 @@ class StatusGUI(object):
     def displayDailyDouble(self,question,player_name,player_score):
         self.canvas.pack_forget()
         dd_screen = [True]
-        dd_canvas = Canvas(self.frame,bg=utils.bg_blue)
+        dd_canvas = utils.SuperCanvas(self.frame,bg=utils.bg_blue)
         dd_canvas.pack(fill=BOTH, expand=True)
         dd_canvas.create_text(50,50,fill="red",text="DAILY DOUBLE: "+player_name+" ($"+str(player_score)+")", anchor=W, font=self.daily_double_font)
         dd_canvas.create_text(50,200,fill="white",text=question.category, anchor=W, font=self.daily_double_category_font)
@@ -324,7 +324,7 @@ class ScoreContainer(object):
             x,y = self.getCoordinates(player_name)
         else:
             x,y = absolute_position
-        canvas_id = self.canvas.create_text(x, y, anchor=W,fill="white",text=player_name+": "+str(player_score),font=self.score_font)
+        canvas_id = self.canvas.t1(self.canvas.create_text, x, y, anchor=W,fill="white",text=player_name+": "+str(player_score),font=self.score_font)
         self.canvas_ids[player_name] = canvas_id
         self.player_scores[player_name] = player_score
         if absolute_position == None:
@@ -427,11 +427,11 @@ class Rectangle(object):
         self.outline = outline
         self.text_id, self.rect_id = None,None
     def paintRect(self,canvas):
-        self.rect_id = canvas.create_rectangle(self.x1,self.y1,self.x2,self.y2, outline=self.outline, fill=self.fill)
+        self.rect_id = canvas.t2(canvas.create_rectangle,self.x1,self.y1,self.x2,self.y2,outline=self.outline, fill=self.fill)
     def paintText(self,canvas,str,color=utils.value_color):
         if self.text_id != None:
             canvas.delete(self.text_id)
-        self.text_id = canvas.create_text(self.x1+10, self.y1+20, fill=color,text=str, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=25))
+        self.text_id = canvas.t1(canvas.create_text,self.x1+10, self.y1+20, fill=color,text=str, anchor=W, font=tkFont.Font(family="Courier",weight="bold",size=25))
     def clear(self,canvas):
         canvas.delete(self.rect_id)
         canvas.delete(self.text_id)
