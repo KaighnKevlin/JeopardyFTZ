@@ -312,96 +312,37 @@ class ScoreContainer(object):
         self.initial_x,self.initial_y = initial_x,initial_y
         self.player_names = player_names
         self.player_scores = {p:0 for p in self.player_names}
-        self.canvas_ids = {}
-        self.score_font = tkFont.Font(family="Courier",weight="bold",size=20)
-        self.animations = {}
     def getCoordinates(self,player_name):
         x = self.initial_x + 50
         y = self.initial_y+self.player_names.index(player_name)*50+20
         return x,y
-    def paintScore(self,player_name,player_score,absolute_position=None):
-        self.unpaintScore(player_name)
-        if absolute_position == None:
-            x,y = self.getCoordinates(player_name)
+    def paintScore(self,player_name,player_score):
+        x,y = self.getCoordinates(player_name)
+        ids_tuple = self.canvas.find_withtag(player_name)
+        if len(ids_tuple) == 0:
+            canvas_id = self.canvas.writeText(x, y, "score_font", anchor=W, fill="white",text="",tags=player_name)
         else:
-            x,y = absolute_position
-        canvas_id = self.canvas.writeText(x, y, "score_font", anchor=W, fill="white",text=player_name+": "+str(player_score))
-        self.canvas_ids[player_name] = canvas_id
+            canvas_id = ids_tuple[0]
+        self.canvas.itemconfig(canvas_id,text=player_name+": "+str(player_score))
         self.player_scores[player_name] = player_score
-        if absolute_position == None:
-            self.animate(player_name)
-    def unpaintScore(self,player_name):
-        if player_name in self.canvas_ids.keys():
-            self.canvas.delete(self.canvas_ids[player_name])
-            del self.canvas_ids[player_name]
-    def animate(self,player_name):
+        self.animate()
+    def animate(self):
         def switch(p1,p2):
-                
-            x1,y1 = self.getCoordinates(p1)
-            x2,y2 = self.getCoordinates(p2)
-            '''
-            self.paintScore(p1,self.player_scores[p1],absolute_position=(x2,y2))
-            self.paintScore(p2,self.player_scores[p2],absolute_position=(x1,y1))
-            
-            '''
-            for animation in self.animations.keys():
-                if animation.player_name == p1 or animation.player_name == p2:
-                    self.animations[animation] = False
-            p1_animation = LineAnimation(40,x1,y1,x2,y2,p1)
-            p2_animation = LineAnimation(40,x2,y2,x1,y1,p2)
-            self.animations[p1_animation] = True
-            self.animations[p2_animation] = True
-            def run_frame():
-                if not self.animations[p1_animation] or not self.animations[p2_animation]:
-                    p1_animation.done = True
-                    del self.animations[p1_animation]
-                    p2_animation.done = True
-                    del self.animations[p2_animation]
-                    return
-                x,y = p1_animation.getCoordinates()
-                self.paintScore(p1,self.player_scores[p1],absolute_position=(x,y))
-                x,y = p2_animation.getCoordinates()
-                self.paintScore(p2,self.player_scores[p2],absolute_position=(x,y))
-                if p2_animation.done and p1_animation.done:
-                    p1_index = self.player_names.index(p1)
-                    p2_index = self.player_names.index(p2)
-                    self.player_names[p1_index] = p2
-                    self.player_names[p2_index] = p1
-                    self.animate(player_name)
-                    return
-                self.canvas.after(17,run_frame)
-            run_frame()            
-        ranking = self.player_names.index(player_name)
-        score = self.player_scores[player_name]
-        if ranking > 0:
-            higher_player = self.player_names[ranking-1]
-            if self.player_scores[higher_player] < score:
-                switch(player_name,higher_player)
-        if ranking < len(self.player_names)-1:
-            lower_player = self.player_names[ranking+1]
-            if self.player_scores[lower_player] > score:
-                switch(player_name,lower_player)
-class LineAnimation(object):
-    def __init__(self,timesteps,initial_x,initial_y,dest_x,dest_y,player_name):
-        self.player_name = player_name
-        self.t = 0
-        self.timesteps = timesteps
-        self.x = initial_x
-        self.y = initial_y
-        self.dx = (dest_x-initial_x)/float(timesteps)
-        self.dy = (dest_y-initial_y)/float(timesteps)
-        self.done = False
-    def move(self):
-        if self.t >= self.timesteps:
-            self.done = True
-            return
-        else:
-            self.t+=1
-        self.x += self.dx
-        self.y += self.dy
-    def getCoordinates(self):
-        self.move()
-        return self.x,self.y
+            self.canvas.animateLine3(p1,p2,40,17)
+            p1_index = self.player_names.index(p1)
+            p2_index = self.player_names.index(p2)
+            self.player_names[p1_index] = p2
+            self.player_names[p2_index] = p1
+        for i,player in enumerate(self.player_names):
+            if i==0:
+                continue
+            score = self.player_scores[player]
+            other_score = self.player_scores[self.player_names[i-1]]
+            if score > other_score:
+                switch(player,self.player_names[i-1])
+                self.animate()
+                return
+        
 class RectangleCreator(object):
     def __init__(self,initial_x,initial_y,padmax_x,padmax_y,screen_width,screen_height,num_rects_x,num_rects_y,pad_x,pad_y):
         self.initial_x = initial_x
