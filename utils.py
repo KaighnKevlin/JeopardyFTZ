@@ -17,6 +17,7 @@ class SuperCanvas(Canvas):
         self.fonts = FontContainer()
         self.animations = {}
         self.animation_queue = []
+        self.children_original_dimensions = {}
     def _on_resize(self,event):
         wscale = float(event.width)/self.width
         hscale = float(event.height)/self.height
@@ -27,6 +28,13 @@ class SuperCanvas(Canvas):
         wscale_original = float(self.width)/self.original_width
         hscale_original = float(self.height)/self.original_height
         self.fonts.scale((wscale_original+hscale_original)/2.0)
+        o_wscale,o_hscale = self._getScalars()
+        for child in self.winfo_children():
+            if child not in self.children_original_dimensions.keys():
+                self.children_original_dimensions[child] = (child["width"],child["height"],child.winfo_rootx(),child.winfo_rooty())
+            dim = self.children_original_dimensions[child]
+            child.configure(width=int(dim[0]*o_wscale),height=int(dim[1]*o_hscale))
+            child.place(x=int(dim[2]*o_wscale),y=int(dim[3]*o_hscale))
     def t2(self,f,x1,y1,x2,y2,**kwargs):
         return f(*(self._transform(x1,y1)+self._transform(x2,y2)),**kwargs)
     def t1(self,f,x,y,**kwargs):
@@ -39,13 +47,13 @@ class SuperCanvas(Canvas):
             kwargs["tags"] = ("canvas_text",tags)
         return self.create_text(*self._transform(x,y),font=self.fonts.getFont(font_str),**kwargs)
     def _transform(self,x,y):
-        wscale = float(self.width)/self.original_width
-        hscale = float(self.height)/self.original_height
+        wscale,hscale = self._getScalars()
         return x*wscale,y*hscale
-    def _untranform(self,x,y):
-        wscale = self.original_width/float(self.width)
-        hscale = self.original_height/float(self.height)
-        return x*wscale,y*hscale
+    def _untransform(self,x,y):
+        wscale,hscale = self._getScalars()
+        return x/wscale,y/hscale
+    def _getScalars(self):
+        return float(self.width)/self.original_width,float(self.height)/self.original_height
     
     def animateLineId(self,animate_id,dest_x,dest_y,steps_num,t_delta): 
         animation = LineAnimation(animate_id,steps_num,dest_x,dest_y,t_delta,self)
@@ -86,8 +94,8 @@ class LineAnimation(object):
         self.id = id
         self.t = 0
         self.timesteps = timesteps
-        self.initial_x,self.initial_y = canvas._untranform(*canvas.coords(id))
-        self.dest_x, self.dest_y = canvas._untranform(dest_x,dest_y)
+        self.initial_x,self.initial_y = canvas._untransform(*canvas.coords(id))
+        self.dest_x, self.dest_y = canvas._untransform(dest_x,dest_y)
         self.dx = (self.dest_x-self.initial_x)/float(timesteps)
         self.dy = (self.dest_y-self.initial_y)/float(timesteps)
         self.t_delta = t_delta
@@ -97,11 +105,10 @@ class LineAnimation(object):
             self.t += 1
             if self.done or self.t > self.timesteps:
                 self.done = True
-                print self.canvas.animation_queue
                 self.canvas.runAnimations()
                 return
             dest_point = (self.dx*self.t+self.initial_x,self.dy*self.t+self.initial_y)
-            cur_point = self.canvas._untranform(*self.canvas.coords(self.id))
+            cur_point = self.canvas._untransform(*self.canvas.coords(self.id))
             vector = (dest_point[0]-cur_point[0],dest_point[1]-cur_point[1])
             resized_vector = self.canvas._transform(*vector)
             self.canvas.move(self.id,*resized_vector)
@@ -116,6 +123,7 @@ class JCanvas(SuperCanvas):
         self.fonts.add("timer_font",tkFont.Font(family="Courier",weight="bold",size=40))
         self.fonts.add("score_font",tkFont.Font(family="Courier",weight="bold",size=20))
         self.fonts.add("text_font",tkFont.Font(family="Courier",weight="bold",size=25))
+        
         
         
 class FontContainer(object):

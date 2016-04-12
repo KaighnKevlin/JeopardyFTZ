@@ -167,15 +167,7 @@ class StatusGUI(object):
         self.rect_creator = RectangleCreator(25,75,400,50,1300,700,6,5,2,2)
         self.initUI()
         self.coordsToRectMap = {}
-        self.score_ids = {}
-        self.category_ids = []
-        self.scores = {}
         self.cancel_timer = False
-        #fonts
-        self.category_font = tkFont.Font(family="Courier",weight="bold",size=14)
-        self.daily_double_font = tkFont.Font(family="Courier",weight="bold",size=50)
-        self.daily_double_category_font = tkFont.Font(family="Courier",weight="bold",size=50)
-        self.timer_font = tkFont.Font(family="Courier",weight="bold",size=40)
     def initUI(self):
         self.frame.pack(fill=BOTH, expand=True)
         self.canvas = utils.JCanvas(self.frame,bg=utils.bg_blue)
@@ -208,23 +200,19 @@ class StatusGUI(object):
         self.score_container.paintScore(player_name,score)
     
     def paintCategories(self,category_names):
-        [self.canvas.delete(id) for id in self.category_ids]
-        self.category_ids = []
+        self.canvas.delete("category")
         for i,name in enumerate(category_names):
             rect = self.getRect(i,0)
-            x = rect.x1+10
-            y = rect.y1-50
-            curr_word = ""
-            split = name.split()
-            for i,word in enumerate(split):
-                if len(curr_word)+len(word) > 12 and curr_word!="":
-                    self.category_ids.append(self.canvas.writeText(x,y,"category_font",text=curr_word,tags="category",fill="white",anchor=W))
-                    curr_word=""
-                    y+=15
-                curr_word+= word+" "
-                if i==len(split)-1:
-                    self.category_ids.append(self.canvas.writeText(x,y,"category_font",text=curr_word,tags="category",fill="white",anchor=W))
-                    curr_word=""
+            x = rect.x1+3
+            y = rect.y1-100
+            f = Frame(self.canvas,width=120,height=55)
+            t = Text(f,bg=utils.bg_blue,fg=utils.mod_question_color,borderwidth=0)
+            t.tag_config("c",justify=CENTER,font=self.canvas.fonts.getFont("category_font"),wrap=WORD)
+            t.insert(INSERT,name,"c")
+            t.config(state=DISABLED)
+            t.pack(fill=BOTH,expand=True)
+            f.pack_propagate(False)
+            f.place(x=x,y=y)
     def startTimer(self,time):
         self.timer_id = self.canvas.writeText(1100,500,"timer_font",fill="green",text=str(time), anchor=W)
         self.time = time
@@ -247,8 +235,6 @@ class StatusGUI(object):
             else:
                 self.canvas.after(1000,timerRound)
         self.canvas.after(1000,timerRound)
-    def displayFinalJeopardy(self):
-        pass
     def displayDailyDouble(self,question,player_name,player_score):
         self.canvas.pack_forget()
         dd_screen = [True]
@@ -317,9 +303,9 @@ class ScoreContainer(object):
         y = self.initial_y+self.player_names.index(player_name)*50+20
         return x,y
     def paintScore(self,player_name,player_score):
-        x,y = self.getCoordinates(player_name)
         ids_tuple = self.canvas.find_withtag(player_name)
         if len(ids_tuple) == 0:
+            x,y = self.getCoordinates(player_name)
             canvas_id = self.canvas.writeText(x, y, "score_font", anchor=W, fill="white",text="",tags=player_name)
         else:
             canvas_id = ids_tuple[0]
@@ -347,17 +333,12 @@ class RectangleCreator(object):
     def __init__(self,initial_x,initial_y,padmax_x,padmax_y,screen_width,screen_height,num_rects_x,num_rects_y,pad_x,pad_y):
         self.initial_x = initial_x
         self.initial_y = initial_y
-        self.x = initial_x
-        self.y = initial_y
         self.dx = (screen_width-initial_x-padmax_x)/num_rects_x
         self.dy = (screen_height-initial_y-padmax_y)/num_rects_y
         self.dimensions = (self.dx-2*pad_x,self.dy-2*pad_y)
-    def setGrid(self,x,y):
-        self.x = self.initial_x + self.dx * x
-        self.y = self.initial_y + self.dy * y
     def create(self,x,y):
-        self.setGrid(x,y)
-        rect = Rectangle(self.x,self.y,self.x+self.dimensions[0],self.y+self.dimensions[1])
+        place_x,place_y = self.initial_x+self.dx*x, self.initial_y+self.dy*y
+        rect = Rectangle(place_x,place_y,place_x+self.dimensions[0],place_y+self.dimensions[1])
         return rect
 class Rectangle(object):
     def __init__(self,x1,y1,x2,y2,outline=utils.rect_outline_blue,fill=utils.rect_blue):
