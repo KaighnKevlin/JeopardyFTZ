@@ -30,11 +30,18 @@ class SuperCanvas(Canvas):
         self.fonts.scale((wscale_original+hscale_original)/2.0)
         o_wscale,o_hscale = self._getScalars()
         for child in self.winfo_children():
+            has_width = True
             if child not in self.children_original_dimensions.keys():
-                self.children_original_dimensions[child] = (child["width"],child["height"],child.winfo_rootx(),child.winfo_rooty())
+                try:
+                    self.children_original_dimensions[child] = (child["width"],child["height"],child.winfo_x(),child.winfo_y())
+                except:
+                    self.children_original_dimensions[child] = (0,0,child.winfo_x(),child.winfo_y())
             dim = self.children_original_dimensions[child]
-            child.configure(width=int(dim[0]*o_wscale),height=int(dim[1]*o_hscale))
             child.place(x=int(dim[2]*o_wscale),y=int(dim[3]*o_hscale))
+            try:
+                child.configure(width=int(dim[0]*o_wscale),height=int(dim[1]*o_hscale))
+            except:
+                pass
     def t2(self,f,x1,y1,x2,y2,**kwargs):
         return f(*(self._transform(x1,y1)+self._transform(x2,y2)),**kwargs)
     def t1(self,f,x,y,**kwargs):

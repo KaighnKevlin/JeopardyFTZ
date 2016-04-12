@@ -198,13 +198,12 @@ class StatusGUI(object):
         rect.paintText(self.canvas,str,color="red")
     def paintScore(self,player_name,score):
         self.score_container.paintScore(player_name,score)
-    
     def paintCategories(self,category_names):
         self.canvas.delete("category")
         for i,name in enumerate(category_names):
             rect = self.getRect(i,0)
-            x = rect.x1+3
-            y = rect.y1-100
+            x = rect.x1+12
+            y = rect.y1-70
             f = Frame(self.canvas,width=120,height=55)
             t = Text(f,bg=utils.bg_blue,fg=utils.mod_question_color,borderwidth=0)
             t.tag_config("c",justify=CENTER,font=self.canvas.fonts.getFont("category_font"),wrap=WORD)
@@ -250,7 +249,7 @@ class StatusGUI(object):
             return        
             
         e = Entry(dd_canvas)
-        e.pack()
+        e.place(x=600,y=400)
         
         def temp_controller(event):
             if event.char == 's':
@@ -291,7 +290,7 @@ class StatusGUI(object):
             e['state'] = DISABLED
             state.switchWindows()
         b = Button(dd_canvas, text="Place Bet", width=10, command=placeBet)
-        b.pack()
+        b.place(x=600,y=450)
 class ScoreContainer(object):
     def __init__(self,player_names,initial_x,initial_y,canvas):
         self.canvas = canvas
